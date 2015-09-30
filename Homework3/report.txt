@@ -1,0 +1,193 @@
+How to run the code:
+Take English as an example:
+python main.py data/English-train.xml data/English-dev.xml English.answer English
+#############################################################################################
+REPORT
+sd2810
+shiyu dong
+#############################################################################################
+Declaration:
+All my implementations have 100% attempted rate, which means precison is the same as recall.
+
+Creative Feature Design:
+First get the union set for one target word, say the union set have N entries. 
+When scan an instance to generate its feature set, do the following:
+	for n in N:
+		lv = [0] * k * 2  #window size k
+		if n in Instance: #Instance is a token list
+			index = Instance.index(n)
+			lv[index] = 1
+		contextv.extenend(lv)#contextv is the feature vector for the Instance
+
+Say union=[u1,u2,u3,u4,u5,u6] ,N = 6, and k=3, we will have a feature vector for an Instance in the following format:
+[0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0 ,0,0,0,0,0,0]
+ ----------- ----------- ----------- ----------- -----------  -----------
+ u1          u2          u3          u4          u5           u6
+ info encoded :
+ u1 is the third word of the instance
+ u4 is the first word of the instance
+
+The fist 6 entries tells us that u1(which is first entry of union set)appears in the third word of the instance(which is also the one right before target word)
+
+With this above feature, I will call it best feature from now on, when choosing k = 3 and using svm, a precision,recall  65.8% is reached for English 
+
+>>>General Conclustion for Three Languages:
+
+when k is larger, say k =10:
+Stemming and removing stopwords both help to increase the precison to some extent.
+
+Relevant score is not very much helpful, after choosing different threshhold on the score, I found out the improvement is at most 0.002
+
+Using synonyms is helpful.
+
+But, combination of those features which is helpful individually, won't necessarily lead to a more helpful combiantion. They may undermine each other or overfit together.
+
+When k is small, say k =3:
+All those features used to be helpful turn out to be not helpful or not that much helpful then.
+
+When using my own feature design:
+All those features used to be helpful are not helpful anymore, only undermine the precision.
+
+>>>Explanation...:
+0. svm vs. knn:
+SVM methods are, in general, simpler and less computationally expensive. KNN can produce great results, but is prone to over-fitting because of the highly non-linear nature. Additionally, naive (and exact) KNN is very expensive. This can be leveraged, though, by using approximative algorithms. 
+In general, from my implementation retsults, SVM tends to be universally applicable whereas KNN is not suitable.
+
+1. stemming 
+With or without stemming, the union set is different. It tends to have a smaller union set after stemming.( This probably why when k is large, stemming is helpful, but given k small, stemming is not)
+
+With or without stemming, the feature vector for one instance(context) would be different. If we have stemming,we don't count by occurences of exact word but its word stem. So intuitively, this fights overfitting. 
+
+2. synonyms 
+With synonyms, the union set is expaned compared to shrinked when stemming.
+With synonyms, the instance feature vector is also expanded. 
+
+Synonyms is helpful intuitively, usually in any given isntances, a context word could be changed to one of its synonyms without affecting the sense of the target word .                      
+
+So it is reasonable to inlude synonyms into union set.
+
+3. stemming $ synonyms
+These two are contradictory. When combine them, they undermine each other.
+From above analysis, we konw they change union set into different ways, so it is reasonable to say they cant work together.
+
+4. relevent score
+At very beginning, I thought this would be a good score. But... It actually not very helpful at all.
+Best improvement rate brought by it is 0.002 when k = 10. I guess, using this score will cause overfitting which leads to bad performance when testing.
+
+5. removing stopwords
+Based on results of English and Spanish, the effect of removing stopwords is not very much clear when k is large.
+Intuitively, I would like to keep stopwords. For some taget words, a stopword would be a very good indicaiton of word sense.
+
+when k = 3, should not remove stopwords definitely. 
+when using my own feature design, should not remove stopwords definitely. some stopwords like 'in' 'to' 'of' are very good indication of certain senses.
+
+6. when k = 3:
+No stemming, No removing stopwords, No using synonyms, No relevent Score
+Basically, doing nothing is the best thing.
+
+
+>>>Implementation records
+===ENGLISH===
+***Best feature design :
+k=3  and A feature vector encoding location info about where the word from union set occurs in an instance context.
+This best feature design gains 65.8% precision and recall.
+***
+
+>>>Details about Implementation and Performance
+>>>Step2
+when at first try using k = 10, the best precision reached is around 6.23 for svm, and is around 5.8 for knn.
+>>>Step4
+Given performace below all having k = 3.
+Base case, only have k = 3, no features added to original union set:
+svm: 0.637
+knn: 0.592
+
+Notice: I only list things I did beside choosing k=3, all implementations having ***100% attempted rate***
+1. k = 3 + stemming + removing stopwords + svm : 0.612 , 0.562(knn)
+2. k = 3 + revelent score(top5% ~ top95%) + svm: best is 0.638
+3. k = 3 + stemming +svm: 0.632, 0.592(knn)
+4. k = 3 + synonyms extention : 0.642 , 0.588(knn)
+5. k = 3 + synonyms extention + stemming : 0.629, 0.602(knn)
+6. k = 3 + best feature(expained at beginning) : 0.658
+
+===Catalan===
+
+***Best feature design :
+k=3  and A feature vector encoding location info about where the word from union set occurs in an instance context.
+This best feature design gains 0.823% precision and recall.
+***
+
+>>>Details about Implementation and Performance
+
+>>>For Step2:
+when at first try using k = 10, 
+svm : 0.808
+knn : 0.686
+
+>>>For Step4:
+Given performace below all having k = 3.
+Base case, only have k = 3, no features added to original union set:
+svm: 0.817
+knn: 0.753
+
+Notice: I only list things I did beside choosing k=3, and all implementation having ***100% attempted rate.***
+1. k = 3 + stemming + removing stopwords + svm : catalan is not supported by nltk.corpus.stopwords
+2. k = 3 + revelent score(top5% ~ top95%) + svm: best is .
+3. k = 3 + stemming +svm: 0.809% , 0.761(knn)
+4. k = 3 + synonyms extention : 0.807, 0.736(knn)
+5. k = 3 + synonyms extention + stemming : 0806 0.749knn)
+6. k = 3 + best feature(expained at beginning) : 0.823 
+
+===Spanish===
+
+***My best feature design :
+k=3  and A feature vector encoding location info about where the word from union set occurs in an instance context.
+This best feature design gains 0.749% precision and recall.
+***
+
+>>>Details about Implementation and Performance
+>>>For Step 2:
+when at first try using k = 10, 
+svm : 0.711
+knn : 0.642
+
+>>>For Step 4:
+Given performace below all having k = 3.
+Base case, only have k = 3, no features added to original union set:
+svm: 0.725
+knn: 0.675
+
+Notice: I only list things I did beside choosing k=3, and all implementation having ***100% attempted rate, it will be noted otherwise***
+1. k = 3 + stemming + removing stopwords + svm : 0.729 , knn(0.644) 
+2. k = 3 + revelent score(top5% ~ top95%) + svm: best is 0.73 , knn(0.68)
+3. k = 3 + stemming +svm: 0.726 , knn(0.676) 
+4. k = 3 + synonyms extention : 0.723,knn(0.669)
+5. k = 3 + synonyms extention + stemming : 0.73 , knn(0.682) 
+6. k = 3 + best feature(expained at beginning) : 0.749
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
